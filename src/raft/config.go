@@ -8,20 +8,24 @@ package raft
 // test with the original before submitting.
 //
 
-import "6.824/labgob"
-import "6.824/labrpc"
-import "bytes"
-import "log"
-import "sync"
-import "sync/atomic"
-import "testing"
-import "runtime"
-import "math/rand"
-import crand "crypto/rand"
-import "math/big"
-import "encoding/base64"
-import "time"
-import "fmt"
+import (
+	"bytes"
+	"log"
+	"math/rand"
+	"runtime"
+	"sync"
+	"sync/atomic"
+	"testing"
+
+	"6.824/labgob"
+	"6.824/labrpc"
+
+	crand "crypto/rand"
+	"encoding/base64"
+	"fmt"
+	"math/big"
+	"time"
+)
 
 func randstring(n int) string {
 	b := make([]byte, 2*n)
@@ -335,7 +339,7 @@ func (cfg *config) start1(i int, applier func(int, chan ApplyMsg)) {
 
 func (cfg *config) checkTimeout() {
 	// enforce a two minute real-time limit on each test
-	if !cfg.t.Failed() && time.Since(cfg.start) > 120*time.Second {
+	if !cfg.t.Failed() && time.Since(cfg.start) > 200*time.Second {
 		cfg.t.Fatal("test took longer than 120 seconds")
 	}
 }
@@ -563,7 +567,10 @@ func (cfg *config) wait(index int, n int, startTerm int) interface{} {
 func (cfg *config) one(cmd interface{}, expectedServers int, retry bool) int {
 	t0 := time.Now()
 	starts := 0
+	myCount := 0
 	for time.Since(t0).Seconds() < 10 && cfg.checkFinished() == false {
+		myCount++
+		//fmt.Println("one 第" + RaftToString(myCount) + "次重试")
 		// try all the servers, maybe one is the leader.
 		index := -1
 		for si := 0; si < cfg.n; si++ {
@@ -577,6 +584,7 @@ func (cfg *config) one(cmd interface{}, expectedServers int, retry bool) int {
 			if rf != nil {
 				index1, _, ok := rf.Start(cmd)
 				if ok {
+					//fmt.Println("======server " + RaftToString(starts) + " claimed to be the leade")
 					index = index1
 					break
 				}
@@ -584,10 +592,14 @@ func (cfg *config) one(cmd interface{}, expectedServers int, retry bool) int {
 		}
 
 		if index != -1 {
+
 			// somebody claimed to be the leader and to have
 			// submitted our command; wait a while for agreement.
 			t1 := time.Now()
+			myCount2 := 0
 			for time.Since(t1).Seconds() < 2 {
+				myCount2++
+				//fmt.Println("nCommitted 第" + RaftToString(myCount2) + "次重试")
 				nd, cmd1 := cfg.nCommitted(index)
 				if nd > 0 && nd >= expectedServers {
 					// committed
@@ -601,6 +613,7 @@ func (cfg *config) one(cmd interface{}, expectedServers int, retry bool) int {
 			if retry == false {
 				cfg.t.Fatalf("one(%v) failed to reach agreement", cmd)
 			}
+			//fmt.Println("=======not Success,try again")
 		} else {
 			time.Sleep(50 * time.Millisecond)
 		}
