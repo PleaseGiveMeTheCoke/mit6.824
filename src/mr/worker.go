@@ -93,6 +93,7 @@ func Worker(mapf func(string, string) []KeyValue,
 			}
 			arry := strings.Split(reply.FileName, "/")
 			for i := 0; i < reply.NReduce; i++ {
+				//mr-fileName-reduceNum
 				os.Rename(random+strconv.Itoa(i), "mr-"+arry[len(arry)-1]+"-"+strconv.Itoa(i))
 			}
 			//汇报完成

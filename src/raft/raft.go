@@ -190,16 +190,28 @@ func (rf *Raft) CondInstallSnapshot(lastIncludedTerm int, lastIncludedIndex int,
 // service no longer needs the log through (and including)
 // that index. Raft should now trim its log as much as possible.
 func (rf *Raft) Snapshot(index int, snapshot []byte) {
+	
 	// Your code here (2D).
 	rf.mu.Lock()
-	rf.RaftPrintC("snap index :" + RaftToString(index) + " ,discard log from " + RaftToString(rf.lastIncludedIndex) + " to it")
+	rf.RaftPrint3B("snap index :" + RaftToString(index) + " ,discard log from " + RaftToString(rf.lastIncludedIndex) + " to it")
+	if(index <= rf.lastIncludedIndex){
+		rf.RaftPrint3B("Attention!! index less than lastIncludedIndex,discard")
+		rf.mu.Unlock()
+		return
+	}
 	rf.lastIncludedTerm = rf.getLogTerm(index)
+	rf.RaftPrint3B("BeforeLenLOg:"+RaftToString(len(rf.log)))
+
+	rf.RaftPrint3B("Before snapshot : "+RaftToString(rf.persister.RaftStateSize()))
 	for i := rf.lastIncludedIndex; i < index; i++ {
 		rf.log = rf.log[1:]
 	}
+	rf.RaftPrint3B("AfterLenLOg:"+RaftToString(len(rf.log)))
 	rf.snapShot = snapshot
 	rf.lastIncludedIndex = index
 	rf.persist()
+	rf.RaftPrint3B("After snapshot : "+RaftToString(rf.persister.RaftStateSize()))
+
 	rf.mu.Unlock()
 }
 
@@ -261,6 +273,9 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 func (rf *Raft) Kill() {
 	atomic.StoreInt32(&rf.dead, 1)
 	// Your code here, if desired.
+}
+func (rf *Raft) GetCurrentTerm() int{
+	return rf.currentTerm
 }
 
 func (rf *Raft) killed() bool {
@@ -489,7 +504,8 @@ func (rf *Raft) sendRpc() {
 					if args.PrevLogIndex-1 < 0 {
 						args.PrevLogTerm = -1
 					} else {
-						if args.PrevLogIndex < rf.lastIncludedIndex {
+						if args.PrevLogIndex < rf.lastIncludedIndex {	
+
 							rf.RaftPrintC("send InstallSnapShot RPC to server" + RaftToString(x) + "becasue of needed preIndex less than my lastIncludedINdex")
 							oldLastInclude := rf.lastIncludedIndex
 							installArgs := InstallSnapshotArgs{}
@@ -608,15 +624,6 @@ func (rf *Raft) sendRpc() {
 											rf.nextIndex[x] = end
 										}
 									}
-									// if reply.ConfTerm == -1 {
-									// 	//follower has no Log
-									// 	rf.nextIndex[x] = reply.ConfIndex
-									// }
-									// if rf.getLogTerm(reply.ConfIndex) == reply.ConfTerm {
-									// 	rf.nextIndex[x] = reply.ConfIndex + 1
-									// } else {
-									// 	rf.nextIndex[x] = reply.ConfIndex
-									// }
 									rf.RaftPrintB("Optmization ! new nextIndex of peer" + strconv.Itoa(x) + " is" + strconv.Itoa(rf.nextIndex[x]))
 
 								}
@@ -646,7 +653,9 @@ func (rf *Raft) sendRpc() {
 		}(i, rf.rpcRound)
 	}
 }
-
+func(rf *Raft) GetPersister() *Persister {
+	return rf.persister
+}
 //
 // the service or tester wants to create a Raft server. the ports
 // of all the Raft servers (including this one) are in peers[]. this

@@ -68,23 +68,18 @@ func (rf *Raft) AppendEntries(args *AppendEntryArgs, reply *AppendEntryReply) {
 	rf.RaftPrintB("PrevLogIndex : " + RaftToString(args.PrevLogIndex))
 	//Reply false if log doesn’t contain an entry at prevLogIndex whose term matches prevLogTerm
 	pli := args.PrevLogIndex
+	if pli < rf.lastIncludedIndex {
+		reply.Success = false
+		reply.IsOpt = true
+		reply.ConfIndex = pli
+		return
+	}
 	if pli > 0 && (pli > rf.getLastLogIndex() || rf.getLogTerm(pli) != args.PrevLogTerm) {
 		rf.RaftPrintB("My log doesn’t contain an entry at prevLogIndex " + RaftToString(pli) + " whose term matches prevLogTerm,reply false")
 		rf.RaftPrintf("My log : %v\n", rf.log)
 		reply.Success = false
 		if pli <= rf.getLastLogIndex() {
 			reply.IsOpt = true
-			// if rf.getLastLogIndex() == 0 {
-			// 	reply.ConfTerm = -1
-			// } else {
-			//reply.ConfTerm = rf.getLogTerm(rf.getLastLogIndex())
-			//}
-			// confIndex := pli
-			// for confIndex > rf.lastIncludedIndex && rf.getLogTerm(confIndex) == rf.getLogTerm(pli) {
-			// 	confIndex--
-			// }
-			// confIndex++
-			// reply.ConfIndex = confIndex
 			reply.ConfTerm = rf.getLogTerm(pli)
 			confIndex := pli
 			for confIndex > rf.lastIncludedIndex && rf.getLogTerm(confIndex) == rf.getLogTerm(pli) {
@@ -97,17 +92,6 @@ func (rf *Raft) AppendEntries(args *AppendEntryArgs, reply *AppendEntryReply) {
 			//pli比我的最后一个Index大,所以我没有对应的日志,case3.
 			reply.ConfTerm = -1
 			reply.ConfIndex = rf.getLastLogIndex()
-			// if rf.getLastLogIndex() == 0 {
-			// 	reply.ConfTerm = -1
-			// } else {
-			// 	reply.ConfTerm = rf.getLogTerm(rf.getLastLogIndex())
-			// }
-			// confIndex := rf.getLastLogIndex()
-			// for confIndex > rf.lastIncludedIndex && rf.getLogTerm(confIndex) == reply.ConfTerm {
-			// 	confIndex--
-			// }
-			// confIndex++
-			// reply.ConfIndex = confIndex
 			rf.RaftPrintB("Opt!!,reply.confIndex = " + RaftToString(reply.ConfIndex) + " reply.confTerm = " + RaftToString(reply.ConfTerm))
 		}
 		return

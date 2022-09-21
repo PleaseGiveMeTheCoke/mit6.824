@@ -99,7 +99,7 @@ func (c *Coordinator) newFunc2(index int) func() {
 func (c *Coordinator) ReceiveWorker(args *RpcArgs, reply *RpcReply) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-
+	//map任务尚未分配完
 	if c.curPoint < len(c.taskFlag) {
 		// map
 		reply.IsDone = false

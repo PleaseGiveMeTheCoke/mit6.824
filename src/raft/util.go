@@ -32,6 +32,13 @@ func (rf *Raft) RaftPrintB(msg string) {
 		fmt.Printf("Raft id = " + strconv.Itoa(rf.me) + " term = " + strconv.Itoa(rf.currentTerm) + " lastIncludedIndex = " + RaftToString(rf.lastIncludedIndex) + " : " + msg)
 	}
 }
+
+func (rf *Raft) RaftPrint3B(msg string) {
+
+	if 2 == 1 && !rf.killed() {
+		fmt.Println("Raft id = " + strconv.Itoa(rf.me) + " term = " + strconv.Itoa(rf.currentTerm) + " lastIncludedIndex = " + RaftToString(rf.lastIncludedIndex) + " : " + msg)
+	}
+}
 func (rf *Raft) RaftPrintC(msg string) {
 
 	if 2 == 1 && !rf.killed() {
